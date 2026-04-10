@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Role Calibration</title>
+<style>
+  :root {
+    --bg: #f7f3ee;
+    --text: #1a1a1a;
+    --muted: #6b655c;
+    --accent: #c2522e;
+    --accent-dark: #a8431f;
+    --grid: #d4cdc3;
+    --border: #e4dcd0;
+    --error: #8b2635;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    padding: 3rem 1.5rem 4rem;
+  }
+
+  header, main, footer {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  header {
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  h1 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0 0 0.75rem;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    padding-right: 13rem;
+  }
+
+  #role-framing {
+    color: var(--muted);
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+  }
+
+  .empty-title {
+    color: var(--muted);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  .mode-switcher {
+    position: absolute;
+    top: 0.5rem;
+    right: 0;
+    display: flex;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .mode-switcher button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 0.25rem 0.6rem;
+    margin: 0;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.8rem;
+  }
+
+  .mode-switcher button:hover {
+    color: var(--accent);
+    background: transparent;
+  }
+
+  .mode-switcher button.active {
+    color: var(--accent);
+    border-color: var(--border);
+    background: white;
+    cursor: default;
+  }
+
+  h2 {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+  }
+
+  .mode-content {
+    display: none;
+  }
+
+  body.mode-configure #configure-section,
+  body.mode-allocate #allocate-section,
+  body.mode-compare #compare-section {
+    display: block;
+  }
+
+  .empty-state {
+    padding: 1.5rem;
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    text-align: center;
+    color: var(--muted);
+    margin: 2rem 0;
+  }
+
+  .empty-state button {
+    margin-top: 0.75rem;
+  }
+
+  /* Configure mode */
+
+  .config-field {
+    margin-bottom: 1.25rem;
+  }
+
+  .config-field label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .config-field input[type="text"],
+  .config-field input[type="number"],
+  .config-field textarea {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.95rem;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: white;
+    color: var(--text);
+  }
+
+  .config-field textarea {
+    resize: vertical;
+    min-height: 3.5rem;
+  }
+
+  .config-field input:focus,
+  .config-field textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .config-field .help {
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  #config-budget {
+    width: 5rem;
+  }
+
+  .dimension-row {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: white;
+    margin-bottom: 0.75rem;
+    position: relative;
+  }
+
+  .dimension-row .row-header {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    align-items: flex-end;
+  }
+
+  .dimension-row .field-id {
+    flex: 0 0 4rem;
+  }
+
+  .dimension-row .field-label {
+    flex: 1 1 auto;
+  }
+
+  .dimension-row .field-id input,
+  .dimension-row .field-label input {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: white;
+    color: var(--text);
+  }
+
+  .dimension-row .field-id label,
+  .dimension-row .field-label label,
+  .dimension-row .field-hint label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+
+  .dimension-row .field-hint {
+    margin-top: 0.5rem;
+  }
+
+  .dimension-row .field-hint textarea {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: white;
+    color: var(--text);
+    resize: vertical;
+    min-height: 2.5rem;
+  }
+
+  .remove-dim {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    margin: 0 0 0 0.5rem;
+    flex: 0 0 auto;
+  }
+
+  .remove-dim:hover {
+    color: var(--error);
+    border-color: var(--error);
+    background: transparent;
+  }
+
+  #add-dimension {
+    background: transparent;
+    color: var(--muted);
+    border: 1px dashed var(--border);
+    width: 100%;
+    margin: 0 0 1.5rem;
+  }
+
+  #add-dimension:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: transparent;
+  }
+
+  .config-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 1.5rem;
+  }
+
+  #save-config {
+    margin: 0;
+  }
+
+  #reset-config {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    margin: 0;
+  }
+
+  #reset-config:hover {
+    background: white;
+    color: var(--text);
+  }
+
+  .config-errors {
+    color: var(--error);
+    font-size: 0.85rem;
+    margin-top: 0.75rem;
+  }
+
+  .share-banner {
+    margin-top: 1.25rem;
+    padding: 0.9rem 1rem;
+    background: white;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+  }
+
+  .share-banner .share-label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    margin: 0 0 0.4rem;
+  }
+
+  .share-banner .share-url {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    font-family: ui-monospace, "SF Mono", Monaco, Consolas, monospace;
+    font-size: 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--bg);
+    color: var(--text);
+    word-break: break-all;
+  }
+
+  .share-banner .share-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .share-banner button {
+    margin: 0;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+
+  /* Allocate mode */
+
+  .dimension-input {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .dimension-input:last-of-type {
+    border-bottom: none;
+  }
+
+  .dim-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.15rem;
+  }
+
+  .dim-id {
+    font-family: "Iowan Old Style", Palatino, Georgia, serif;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .dim-label {
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  .dim-hint {
+    margin: 0.15rem 0 0.5rem 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  .dim-input-number {
+    padding: 0.4rem 0.6rem;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: white;
+    width: 4.5rem;
+    font-family: inherit;
+    color: var(--text);
+  }
+
+  .dim-input-number:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  #remaining-counter {
+    margin: 1.5rem 0 1rem;
+    padding: 0.6rem 0.9rem;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.95rem;
+    transition: border-color 120ms, color 120ms;
+  }
+
+  #remaining-counter.over {
+    color: var(--error);
+    border-color: var(--error);
+  }
+
+  #remaining-counter.exact {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  #remaining-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+  }
+
+  #allocate-chart, #compare-chart {
+    display: block;
+    margin: 1.5rem auto;
+    width: 100%;
+    max-width: 360px;
+    height: auto;
+  }
+
+  #compare-chart {
+    max-width: 480px;
+  }
+
+  .name-field {
+    display: block;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  #participant-name {
+    display: block;
+    margin-top: 0.25rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: white;
+    width: 100%;
+    max-width: 20rem;
+    font-family: inherit;
+    color: var(--text);
+  }
+
+  #participant-name:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  button {
+    margin-top: 1rem;
+    padding: 0.6rem 1.2rem;
+    font-size: 1rem;
+    font-family: inherit;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 120ms;
+  }
+
+  button:disabled {
+    background: #ccc;
+    color: #888;
+    cursor: not-allowed;
+  }
+
+  button:not(:disabled):hover {
+    background: var(--accent-dark);
+  }
+
+  #clear-button {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    margin-left: 0.5rem;
+  }
+
+  #clear-button:hover {
+    background: white;
+    color: var(--text);
+  }
+
+  #copy-fallback {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+
+  #copy-fallback p {
+    margin: 0 0 0.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  #copy-fallback-text {
+    width: 100%;
+    padding: 0.4rem;
+    font-family: ui-monospace, "SF Mono", Monaco, Consolas, monospace;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* Compare mode */
+
+  #compare-section p {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin: 0 0 0.75rem;
+  }
+
+  #compare-input {
+    width: 100%;
+    padding: 0.6rem;
+    font-family: ui-monospace, "SF Mono", Monaco, Consolas, monospace;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: white;
+    resize: vertical;
+    color: var(--text);
+  }
+
+  #compare-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .errors {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--error);
+  }
+
+  .errors ul {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+
+  .errors li {
+    margin-bottom: 0.25rem;
+    font-family: ui-monospace, monospace;
+  }
+
+  #compare-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    justify-content: center;
+    margin: 0.5rem 0 1.5rem;
+    font-size: 0.88rem;
+  }
+
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .legend-swatch {
+    display: inline-block;
+    width: 1rem;
+    height: 0.7rem;
+    border-radius: 2px;
+  }
+
+  .legend-swatch.dashed {
+    background: transparent !important;
+    border: 2px dashed var(--text);
+  }
+
+  #compare-stats {
+    width: 100%;
+    margin-top: 1rem;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  #compare-stats th, #compare-stats td {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #compare-stats th {
+    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  #compare-stats td:not(:first-child) {
+    font-family: ui-monospace, "SF Mono", Monaco, Consolas, monospace;
+    text-align: right;
+  }
+
+  #compare-stats th:not(:first-child) {
+    text-align: right;
+  }
+
+  footer {
+    margin-top: 3rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  footer a {
+    color: var(--muted);
+  }
+</style>
+</head>
+<body class="mode-configure">
+
+<header>
+  <h1 id="role-title"><span class="empty-title">Role calibration</span></h1>
+  <p id="role-framing">A small tool for figuring out what a role should optimize for. Configure it for your role, share the link, allocate, compare.</p>
+  <div class="mode-switcher">
+    <button type="button" data-mode="configure" class="active">Configure</button>
+    <button type="button" data-mode="allocate">Allocate</button>
+    <button type="button" data-mode="compare">Compare</button>
+  </div>
+</header>
+
+<main>
+
+  <section id="configure-section" class="mode-content">
+    <h2>Configure this calibration</h2>
+    <p class="help-intro">Fill in the role details and the dimensions participants will allocate points across. Save to generate a shareable URL that carries the configuration.</p>
+
+    <div class="config-field">
+      <label for="config-title">Role title</label>
+      <input type="text" id="config-title" placeholder="e.g. Head of Data, Security Lead, Engineering Manager">
+    </div>
+
+    <div class="config-field">
+      <label for="config-framing">Framing for participants</label>
+      <textarea id="config-framing" rows="3" placeholder="A short instruction shown at the top. Usually tells participants to allocate the budget based on relative weight and not think about specific candidates yet."></textarea>
+    </div>
+
+    <div class="config-field">
+      <label for="config-budget">Point budget per participant</label>
+      <input type="number" id="config-budget" value="20" min="1" max="100" step="1">
+      <p class="help">Each participant distributes this many points across the dimensions. 20 is a good default for 4 to 6 dimensions.</p>
+    </div>
+
+    <div class="config-field">
+      <label>Dimensions</label>
+      <p class="help">Each dimension needs a short ID (1 to 2 letters, used in the copy code), a label, and a hint explaining what it means. Add between 3 and 8 dimensions.</p>
+      <div id="dimension-rows"></div>
+      <button type="button" id="add-dimension">+ Add dimension</button>
+    </div>
+
+    <div class="config-actions">
+      <button type="button" id="save-config">Save &amp; generate share URL</button>
+      <button type="button" id="reset-config">Reset</button>
+    </div>
+    <div id="config-errors" class="config-errors"></div>
+    <div id="share-banner" class="share-banner" hidden>
+      <p class="share-label">Share this URL with the group</p>
+      <input type="text" id="share-url" class="share-url" readonly>
+      <div class="share-actions">
+        <button type="button" id="copy-url">Copy URL</button>
+        <button type="button" id="goto-allocate">Try it in Allocate mode →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="allocate-section" class="mode-content">
+    <div id="allocate-empty" class="empty-state">
+      <p>No role is configured yet.</p>
+      <button type="button" data-mode-switch="configure">Configure a role</button>
+    </div>
+    <form id="allocate-form" onsubmit="return false;" hidden>
+      <div id="dimension-inputs"></div>
+      <div id="remaining-counter"><strong>Remaining:</strong> <span id="remaining-value">20</span> / <span id="budget-display">20</span></div>
+      <svg id="allocate-chart" viewBox="-170 -170 340 340" xmlns="http://www.w3.org/2000/svg"></svg>
+      <label class="name-field" for="participant-name">Your name (optional)
+        <input type="text" id="participant-name" placeholder="">
+      </label>
+      <button type="button" id="copy-button" disabled>Copy my code</button>
+      <div id="copy-fallback" hidden>
+        <p>Couldn't copy automatically. Select all and copy this:</p>
+        <textarea id="copy-fallback-text" readonly rows="1"></textarea>
+      </div>
+    </form>
+  </section>
+
+  <section id="compare-section" class="mode-content">
+    <div id="compare-empty" class="empty-state">
+      <p>No role is configured yet.</p>
+      <button type="button" data-mode-switch="configure">Configure a role</button>
+    </div>
+    <div id="compare-body" hidden>
+      <p>Paste everyone's codes from the Google Meet chat, one per line.</p>
+      <textarea id="compare-input" rows="8" placeholder="Alex: A4 B6 C4 D3 E3&#10;Sam: A3 B5 C6 D3 E3"></textarea>
+      <div>
+        <button type="button" id="render-button">Render</button>
+        <button type="button" id="clear-button">Clear</button>
+      </div>
+      <div id="compare-errors" class="errors"></div>
+      <svg id="compare-chart" viewBox="-220 -220 440 440" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div id="compare-legend"></div>
+      <table id="compare-stats">
+        <thead><tr><th>Dimension</th><th>Avg</th><th>Min</th><th>Max</th><th>Stdev</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <small>role calibration · <a href="https://github.com/dannybauman/role-calibration">source</a></small>
+</footer>
+
+<script>
+const PALETTE = [
+  "#c2522e", "#2c5f70", "#7b6aaa", "#6a9a4a",
+  "#c49a3b", "#a04060", "#3b6e8f", "#8a5a3a"
+];
+
+// ============================================================
+// State — no hardcoded role, loaded from URL hash on init
+// ============================================================
+
+let currentConfig = null;
+
+const STARTER_DIMENSIONS = [
+  { id: "", label: "", hint: "" },
+  { id: "", label: "", hint: "" },
+  { id: "", label: "", hint: "" }
+];
+
+// ============================================================
+// Helpers
+// ============================================================
+
+function clearNode(el) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+function encodeConfigToHash(config) {
+  return "c=" + encodeURIComponent(JSON.stringify(config));
+}
+
+function decodeConfigFromHash(hash) {
+  const raw = hash.replace(/^#/, "");
+  if (!raw) return null;
+  const params = raw.split("&");
+  for (const p of params) {
+    const eq = p.indexOf("=");
+    if (eq < 0) continue;
+    const key = p.slice(0, eq);
+    const val = p.slice(eq + 1);
+    if (key === "c") {
+      try {
+        return JSON.parse(decodeURIComponent(val));
+      } catch (err) {
+        console.warn("Failed to parse config from URL hash:", err);
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+function buildShareUrl(config) {
+  const base = location.origin + location.pathname;
+  return base + "#" + encodeConfigToHash(config);
+}
+
+function parseCode(line) {
+  if (!currentConfig) throw new Error("no role configured");
+
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  let name, rest;
+  const colonIdx = trimmed.indexOf(":");
+  if (colonIdx >= 0) {
+    name = trimmed.slice(0, colonIdx).trim();
+    rest = trimmed.slice(colonIdx + 1).trim();
+  } else {
+    name = null;
+    rest = trimmed;
+  }
+
+  const tokenRe = /([A-Za-z]+)(\d+)/g;
+  const values = {};
+  for (const m of rest.matchAll(tokenRe)) {
+    const id = m[1].toUpperCase();
+    values[id] = parseInt(m[2], 10);
+  }
+
+  const dimIds = currentConfig.dimensions.map(function (d) { return d.id.toUpperCase(); });
+  const missing = dimIds.filter(function (id) { return !(id in values); });
+  if (missing.length > 0) {
+    throw new Error("missing dimension(s): " + missing.join(", "));
+  }
+
+  const extras = Object.keys(values).filter(function (id) { return dimIds.indexOf(id) === -1; });
+  if (extras.length > 0) {
+    throw new Error("unknown dimension(s): " + extras.join(", "));
+  }
+
+  const total = dimIds.reduce(function (s, id) { return s + values[id]; }, 0);
+  if (total !== currentConfig.budget) {
+    throw new Error("total is " + total + ", expected " + currentConfig.budget);
+  }
+
+  return { name: name || null, values: values };
+}
+
+function serializeCode(values, name) {
+  const prefix = name && name.trim() ? name.trim() + ": " : "";
+  const parts = currentConfig.dimensions.map(function (d) {
+    const id = d.id.toUpperCase();
+    return id + (values[id] || 0);
+  });
+  return prefix + parts.join(" ");
+}
+
+function computeStats(submissions) {
+  const result = {};
+  currentConfig.dimensions.forEach(function (dim) {
+    const id = dim.id.toUpperCase();
+    const vals = submissions.map(function (s) { return s.values[id] || 0; });
+    const sum = vals.reduce(function (a, b) { return a + b; }, 0);
+    const avg = sum / vals.length;
+    const min = Math.min.apply(null, vals);
+    const max = Math.max.apply(null, vals);
+    const variance = vals.reduce(function (a, v) { return a + (v - avg) * (v - avg); }, 0) / vals.length;
+    const stdev = Math.sqrt(variance);
+    result[id] = { avg: avg, min: min, max: max, stdev: stdev };
+  });
+  return result;
+}
+
+// ============================================================
+// Chart
+// ============================================================
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function svgEl(tag, attrs) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) {
+    e.setAttribute(k, attrs[k]);
+  }
+  return e;
+}
+
+function renderChart(svg, submissions) {
+  clearNode(svg);
+  if (!currentConfig) return;
+
+  const RADIUS = 120;
+  const GRID_LEVELS = 5;
+  const N = currentConfig.dimensions.length;
+
+  const angles = currentConfig.dimensions.map(function (_, i) {
+    return -Math.PI / 2 + (2 * Math.PI * i) / N;
+  });
+
+  function pointAt(axisIdx, value) {
+    const r = (value / currentConfig.budget) * RADIUS;
+    return {
+      x: r * Math.cos(angles[axisIdx]),
+      y: r * Math.sin(angles[axisIdx])
+    };
+  }
+
+  for (let level = 1; level <= GRID_LEVELS; level++) {
+    const frac = level / GRID_LEVELS;
+    const pts = angles.map(function (a) {
+      const x = frac * RADIUS * Math.cos(a);
+      const y = frac * RADIUS * Math.sin(a);
+      return x.toFixed(2) + "," + y.toFixed(2);
+    }).join(" ");
+    svg.appendChild(svgEl("polygon", {
+      points: pts,
+      fill: "none",
+      stroke: "#d4cdc3",
+      "stroke-width": "1"
+    }));
+  }
+
+  for (let i = 0; i < N; i++) {
+    const x = RADIUS * Math.cos(angles[i]);
+    const y = RADIUS * Math.sin(angles[i]);
+    svg.appendChild(svgEl("line", {
+      x1: "0", y1: "0",
+      x2: x.toFixed(2), y2: y.toFixed(2),
+      stroke: "#d4cdc3",
+      "stroke-width": "1"
+    }));
+  }
+
+  for (let i = 0; i < N; i++) {
+    const labelR = RADIUS * 1.18;
+    const x = labelR * Math.cos(angles[i]);
+    const y = labelR * Math.sin(angles[i]);
+    let anchor = "middle";
+    if (Math.abs(x) > 1) anchor = x > 0 ? "start" : "end";
+    const label = svgEl("text", {
+      x: x.toFixed(2),
+      y: y.toFixed(2),
+      "text-anchor": anchor,
+      "dominant-baseline": "middle",
+      "font-size": "11",
+      "font-family": "-apple-system, BlinkMacSystemFont, sans-serif",
+      "font-weight": "500",
+      fill: "#1a1a1a"
+    });
+    label.textContent = currentConfig.dimensions[i].label;
+    svg.appendChild(label);
+  }
+
+  submissions.forEach(function (sub) {
+    const pts = currentConfig.dimensions.map(function (d, i) {
+      const id = d.id.toUpperCase();
+      const p = pointAt(i, sub.values[id] || 0);
+      return p.x.toFixed(2) + "," + p.y.toFixed(2);
+    }).join(" ");
+
+    const color = sub.color || "#c2522e";
+    const isAverage = !!sub.isAverage;
+
+    svg.appendChild(svgEl("polygon", {
+      points: pts,
+      fill: isAverage ? "none" : color,
+      "fill-opacity": isAverage ? "0" : "0.28",
+      stroke: color,
+      "stroke-width": isAverage ? "2" : "1.5",
+      "stroke-dasharray": isAverage ? "4 3" : "none"
+    }));
+
+    if (!isAverage) {
+      currentConfig.dimensions.forEach(function (d, i) {
+        const id = d.id.toUpperCase();
+        const p = pointAt(i, sub.values[id] || 0);
+        svg.appendChild(svgEl("circle", {
+          cx: p.x.toFixed(2),
+          cy: p.y.toFixed(2),
+          r: "2.5",
+          fill: color
+        }));
+      });
+    }
+  });
+}
+
+// ============================================================
+// Mode switching
+// ============================================================
+
+function setMode(mode) {
+  document.body.classList.remove("mode-configure", "mode-allocate", "mode-compare");
+  document.body.classList.add("mode-" + mode);
+  document.querySelectorAll(".mode-switcher button").forEach(function (b) {
+    b.classList.toggle("active", b.dataset.mode === mode);
+  });
+  if (mode === "allocate") {
+    refreshAllocateUI();
+  } else if (mode === "compare") {
+    refreshCompareUI();
+  }
+}
+
+// ============================================================
+// Configure mode
+// ============================================================
+
+function renderDimensionRows(dimensions) {
+  const container = document.getElementById("dimension-rows");
+  clearNode(container);
+  dimensions.forEach(function (dim, idx) {
+    const row = document.createElement("div");
+    row.className = "dimension-row";
+    row.dataset.idx = String(idx);
+
+    const rowHeader = document.createElement("div");
+    rowHeader.className = "row-header";
+
+    const idField = document.createElement("div");
+    idField.className = "field-id";
+    const idLabel = document.createElement("label");
+    idLabel.textContent = "ID";
+    const idInput = document.createElement("input");
+    idInput.type = "text";
+    idInput.maxLength = 2;
+    idInput.value = dim.id || "";
+    idInput.placeholder = "T";
+    idInput.dataset.field = "id";
+    idField.appendChild(idLabel);
+    idField.appendChild(idInput);
+
+    const labelField = document.createElement("div");
+    labelField.className = "field-label";
+    const labelLabel = document.createElement("label");
+    labelLabel.textContent = "Label";
+    const labelInput = document.createElement("input");
+    labelInput.type = "text";
+    labelInput.value = dim.label || "";
+    labelInput.placeholder = "e.g. Technical judgment";
+    labelInput.dataset.field = "label";
+    labelField.appendChild(labelLabel);
+    labelField.appendChild(labelInput);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "remove-dim";
+    removeBtn.textContent = "Remove";
+    removeBtn.addEventListener("click", function () {
+      const currentDims = readDimensionsFromForm();
+      currentDims.splice(idx, 1);
+      if (currentDims.length === 0) currentDims.push({ id: "", label: "", hint: "" });
+      renderDimensionRows(currentDims);
+    });
+
+    rowHeader.appendChild(idField);
+    rowHeader.appendChild(labelField);
+    rowHeader.appendChild(removeBtn);
+
+    const hintField = document.createElement("div");
+    hintField.className = "field-hint";
+    const hintLabel = document.createElement("label");
+    hintLabel.textContent = "Hint";
+    const hintTextarea = document.createElement("textarea");
+    hintTextarea.rows = 2;
+    hintTextarea.value = dim.hint || "";
+    hintTextarea.placeholder = "One or two sentences describing what this dimension means.";
+    hintTextarea.dataset.field = "hint";
+    hintField.appendChild(hintLabel);
+    hintField.appendChild(hintTextarea);
+
+    row.appendChild(rowHeader);
+    row.appendChild(hintField);
+    container.appendChild(row);
+  });
+}
+
+function readDimensionsFromForm() {
+  const rows = document.querySelectorAll("#dimension-rows .dimension-row");
+  return Array.prototype.map.call(rows, function (row) {
+    return {
+      id: row.querySelector('input[data-field="id"]').value.trim().toUpperCase(),
+      label: row.querySelector('input[data-field="label"]').value.trim(),
+      hint: row.querySelector('textarea[data-field="hint"]').value.trim()
+    };
+  });
+}
+
+function readConfigFromForm() {
+  return {
+    role: {
+      title: document.getElementById("config-title").value.trim(),
+      framing: document.getElementById("config-framing").value.trim()
+    },
+    budget: parseInt(document.getElementById("config-budget").value, 10) || 20,
+    dimensions: readDimensionsFromForm()
+  };
+}
+
+function validateConfig(config) {
+  const errors = [];
+  if (!config.role.title) errors.push("Role title is required");
+  if (config.budget < 1) errors.push("Budget must be at least 1");
+  const dims = config.dimensions;
+  if (dims.length < 2) errors.push("Need at least 2 dimensions");
+  if (dims.length > 8) errors.push("Maximum 8 dimensions");
+  const ids = new Set();
+  dims.forEach(function (d, i) {
+    if (!d.id) errors.push("Dimension " + (i + 1) + ": ID is required");
+    if (d.id && !/^[A-Z]{1,2}$/.test(d.id)) errors.push("Dimension " + (i + 1) + ": ID must be 1-2 letters");
+    if (d.id && ids.has(d.id)) errors.push("Dimension " + (i + 1) + ": ID '" + d.id + "' is duplicated");
+    ids.add(d.id);
+    if (!d.label) errors.push("Dimension " + (i + 1) + ": Label is required");
+  });
+  return errors;
+}
+
+function populateConfigForm(config) {
+  document.getElementById("config-title").value = config.role.title || "";
+  document.getElementById("config-framing").value = config.role.framing || "";
+  document.getElementById("config-budget").value = String(config.budget || 20);
+  const dims = config.dimensions && config.dimensions.length > 0 ? config.dimensions : STARTER_DIMENSIONS.slice();
+  renderDimensionRows(dims);
+}
+
+function applyConfig(config) {
+  currentConfig = config;
+  updateHeader();
+}
+
+function updateHeader() {
+  const titleEl = document.getElementById("role-title");
+  const framingEl = document.getElementById("role-framing");
+  if (currentConfig && currentConfig.role.title) {
+    titleEl.textContent = currentConfig.role.title;
+    framingEl.textContent = currentConfig.role.framing || "";
+    document.title = currentConfig.role.title + " — Role Calibration";
+  } else {
+    clearNode(titleEl);
+    const span = document.createElement("span");
+    span.className = "empty-title";
+    span.textContent = "Role calibration";
+    titleEl.appendChild(span);
+    framingEl.textContent = "A small tool for figuring out what a role should optimize for. Configure it for your role, share the link, allocate, compare.";
+    document.title = "Role Calibration";
+  }
+}
+
+// ============================================================
+// Allocate mode
+// ============================================================
+
+function refreshAllocateUI() {
+  const emptyState = document.getElementById("allocate-empty");
+  const form = document.getElementById("allocate-form");
+  if (!currentConfig) {
+    emptyState.hidden = false;
+    form.hidden = true;
+    return;
+  }
+  emptyState.hidden = true;
+  form.hidden = false;
+
+  const container = document.getElementById("dimension-inputs");
+  clearNode(container);
+  currentConfig.dimensions.forEach(function (dim) {
+    const id = dim.id.toUpperCase();
+    const wrapper = document.createElement("div");
+    wrapper.className = "dimension-input";
+
+    const header = document.createElement("div");
+    header.className = "dim-header";
+    const idSpan = document.createElement("span");
+    idSpan.className = "dim-id";
+    idSpan.textContent = id;
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "dim-label";
+    labelSpan.textContent = dim.label;
+    header.appendChild(idSpan);
+    header.appendChild(labelSpan);
+
+    const hintP = document.createElement("p");
+    hintP.className = "dim-hint";
+    hintP.textContent = dim.hint || "";
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.id = "dim-" + id;
+    input.className = "dim-input-number";
+    input.dataset.dim = id;
+    input.min = "0";
+    input.max = String(currentConfig.budget);
+    input.step = "1";
+    input.value = "0";
+    input.addEventListener("input", updateAllocate);
+
+    wrapper.appendChild(header);
+    wrapper.appendChild(hintP);
+    wrapper.appendChild(input);
+    container.appendChild(wrapper);
+  });
+
+  document.getElementById("budget-display").textContent = String(currentConfig.budget);
+  updateAllocate();
+}
+
+function readAllocateValues() {
+  const values = {};
+  document.querySelectorAll("input[data-dim]").forEach(function (input) {
+    const dimId = input.dataset.dim;
+    const val = parseInt(input.value, 10);
+    values[dimId] = isNaN(val) ? 0 : Math.max(0, val);
+  });
+  return values;
+}
+
+function updateAllocate() {
+  if (!currentConfig) return;
+  const values = readAllocateValues();
+  const total = currentConfig.dimensions.reduce(function (s, d) {
+    return s + (values[d.id.toUpperCase()] || 0);
+  }, 0);
+  const remaining = currentConfig.budget - total;
+  document.getElementById("remaining-value").textContent = String(remaining);
+  const counter = document.getElementById("remaining-counter");
+  counter.classList.toggle("over", total > currentConfig.budget);
+  counter.classList.toggle("exact", total === currentConfig.budget);
+  document.getElementById("copy-button").disabled = total !== currentConfig.budget;
+  renderChart(document.getElementById("allocate-chart"), [{ values: values, color: "#c2522e" }]);
+}
+
+// ============================================================
+// Compare mode
+// ============================================================
+
+function refreshCompareUI() {
+  const emptyState = document.getElementById("compare-empty");
+  const body = document.getElementById("compare-body");
+  if (!currentConfig) {
+    emptyState.hidden = false;
+    body.hidden = true;
+    return;
+  }
+  emptyState.hidden = true;
+  body.hidden = false;
+}
+
+function doRender() {
+  if (!currentConfig) return;
+
+  const compareInput = document.getElementById("compare-input");
+  const compareChart = document.getElementById("compare-chart");
+  const compareLegend = document.getElementById("compare-legend");
+  const compareErrors = document.getElementById("compare-errors");
+  const statsBody = document.querySelector("#compare-stats tbody");
+
+  const lines = compareInput.value.split("\n");
+  const submissions = [];
+  const errors = [];
+  let anonCounter = 1;
+
+  lines.forEach(function (line, idx) {
+    if (!line.trim()) return;
+    try {
+      const parsed = parseCode(line);
+      if (!parsed) return;
+      if (!parsed.name) {
+        parsed.name = "Anon " + anonCounter;
+        anonCounter += 1;
+      }
+      submissions.push({
+        name: parsed.name,
+        values: parsed.values,
+        color: PALETTE[submissions.length % PALETTE.length]
+      });
+    } catch (err) {
+      errors.push("Line " + (idx + 1) + ": " + err.message + " — `" + line + "`");
+    }
+  });
+
+  clearNode(compareErrors);
+  if (errors.length > 0) {
+    const ul = document.createElement("ul");
+    errors.forEach(function (msg) {
+      const li = document.createElement("li");
+      li.textContent = msg;
+      ul.appendChild(li);
+    });
+    compareErrors.appendChild(ul);
+  }
+
+  if (submissions.length === 0) {
+    clearNode(compareChart);
+    clearNode(compareLegend);
+    clearNode(statsBody);
+    return;
+  }
+
+  const stats = computeStats(submissions);
+  const avgValues = {};
+  currentConfig.dimensions.forEach(function (dim) {
+    const id = dim.id.toUpperCase();
+    avgValues[id] = stats[id].avg;
+  });
+  const withAverage = submissions.concat([{
+    name: "Group average",
+    values: avgValues,
+    color: "#1a1a1a",
+    isAverage: true
+  }]);
+
+  renderChart(compareChart, withAverage);
+
+  clearNode(compareLegend);
+  withAverage.forEach(function (sub) {
+    const item = document.createElement("span");
+    item.className = "legend-item";
+    const swatch = document.createElement("span");
+    swatch.className = "legend-swatch" + (sub.isAverage ? " dashed" : "");
+    if (!sub.isAverage) {
+      swatch.style.background = sub.color;
+    }
+    const text = document.createTextNode(sub.name);
+    item.appendChild(swatch);
+    item.appendChild(text);
+    compareLegend.appendChild(item);
+  });
+
+  clearNode(statsBody);
+  currentConfig.dimensions.forEach(function (dim) {
+    const id = dim.id.toUpperCase();
+    const s = stats[id];
+    const row = document.createElement("tr");
+    const td1 = document.createElement("td");
+    td1.textContent = dim.label;
+    const td2 = document.createElement("td");
+    td2.textContent = s.avg.toFixed(1);
+    const td3 = document.createElement("td");
+    td3.textContent = String(s.min);
+    const td4 = document.createElement("td");
+    td4.textContent = String(s.max);
+    const td5 = document.createElement("td");
+    td5.textContent = s.stdev.toFixed(2);
+    row.appendChild(td1);
+    row.appendChild(td2);
+    row.appendChild(td3);
+    row.appendChild(td4);
+    row.appendChild(td5);
+    statsBody.appendChild(row);
+  });
+}
+
+// ============================================================
+// Init
+// ============================================================
+
+function init() {
+  // Try loading config from URL hash
+  const hashConfig = decodeConfigFromHash(location.hash);
+  if (hashConfig && hashConfig.role && hashConfig.dimensions) {
+    applyConfig(hashConfig);
+    populateConfigForm(hashConfig);
+    setMode("allocate");
+  } else {
+    populateConfigForm({
+      role: { title: "", framing: "" },
+      budget: 20,
+      dimensions: STARTER_DIMENSIONS.slice()
+    });
+    updateHeader();
+    setMode("configure");
+  }
+
+  // Mode switcher
+  document.querySelectorAll(".mode-switcher button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setMode(btn.dataset.mode);
+    });
+  });
+  document.querySelectorAll("[data-mode-switch]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      setMode(btn.dataset.modeSwitch);
+    });
+  });
+
+  // Configure mode wiring
+  document.getElementById("add-dimension").addEventListener("click", function () {
+    const dims = readDimensionsFromForm();
+    if (dims.length >= 8) return;
+    dims.push({ id: "", label: "", hint: "" });
+    renderDimensionRows(dims);
+  });
+
+  document.getElementById("reset-config").addEventListener("click", function () {
+    populateConfigForm({
+      role: { title: "", framing: "" },
+      budget: 20,
+      dimensions: STARTER_DIMENSIONS.slice()
+    });
+    document.getElementById("config-errors").textContent = "";
+    document.getElementById("share-banner").hidden = true;
+    currentConfig = null;
+    updateHeader();
+    history.replaceState(null, "", location.pathname);
+  });
+
+  document.getElementById("save-config").addEventListener("click", function () {
+    const config = readConfigFromForm();
+    const errors = validateConfig(config);
+    const errorEl = document.getElementById("config-errors");
+    if (errors.length > 0) {
+      clearNode(errorEl);
+      const ul = document.createElement("ul");
+      errors.forEach(function (e) {
+        const li = document.createElement("li");
+        li.textContent = e;
+        ul.appendChild(li);
+      });
+      errorEl.appendChild(ul);
+      document.getElementById("share-banner").hidden = true;
+      return;
+    }
+    errorEl.textContent = "";
+    applyConfig(config);
+    const shareUrl = buildShareUrl(config);
+    history.replaceState(null, "", "#" + encodeConfigToHash(config));
+    document.getElementById("share-url").value = shareUrl;
+    document.getElementById("share-banner").hidden = false;
+  });
+
+  document.getElementById("copy-url").addEventListener("click", async function () {
+    const url = document.getElementById("share-url").value;
+    const btn = document.getElementById("copy-url");
+    let copied = false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch (err) {
+        copied = false;
+      }
+    }
+    if (copied) {
+      const originalText = btn.textContent;
+      btn.textContent = "Copied ✓";
+      setTimeout(function () { btn.textContent = originalText; }, 2000);
+    } else {
+      const el = document.getElementById("share-url");
+      el.focus();
+      el.select();
+    }
+  });
+
+  document.getElementById("goto-allocate").addEventListener("click", function () {
+    setMode("allocate");
+  });
+
+  // Allocate mode wiring
+  document.getElementById("copy-button").addEventListener("click", async function () {
+    const values = readAllocateValues();
+    const name = document.getElementById("participant-name").value;
+    const code = serializeCode(values, name);
+
+    const btn = document.getElementById("copy-button");
+    let copied = false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(code);
+        copied = true;
+      } catch (err) {
+        copied = false;
+      }
+    }
+
+    if (copied) {
+      const originalText = btn.textContent;
+      btn.textContent = "Copied ✓";
+      setTimeout(function () { btn.textContent = originalText; }, 2000);
+    } else {
+      const fallback = document.getElementById("copy-fallback");
+      const fallbackText = document.getElementById("copy-fallback-text");
+      fallback.hidden = false;
+      fallbackText.value = code;
+      fallbackText.focus();
+      fallbackText.select();
+    }
+  });
+
+  // Compare mode wiring
+  document.getElementById("render-button").addEventListener("click", doRender);
+  document.getElementById("clear-button").addEventListener("click", function () {
+    document.getElementById("compare-input").value = "";
+    clearNode(document.getElementById("compare-errors"));
+    clearNode(document.getElementById("compare-chart"));
+    clearNode(document.getElementById("compare-legend"));
+    clearNode(document.querySelector("#compare-stats tbody"));
+  });
+
+  // React to hash changes (in case someone edits the URL or follows a shared link)
+  window.addEventListener("hashchange", function () {
+    const hashConfig = decodeConfigFromHash(location.hash);
+    if (hashConfig && hashConfig.role && hashConfig.dimensions) {
+      applyConfig(hashConfig);
+      populateConfigForm(hashConfig);
+      setMode("allocate");
+    }
+  });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+</script>
+
+</body>
+</html>

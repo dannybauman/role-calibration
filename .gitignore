@@ -1,0 +1,6 @@
+.DS_Store
+.playwright-mcp/
+allocate-empty.png
+allocate-filled.png
+compare-rendered.png
+*.log
