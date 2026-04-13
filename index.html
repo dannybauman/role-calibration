@@ -429,12 +429,12 @@
     display: block;
     margin: 1.5rem auto;
     width: 100%;
-    max-width: 360px;
+    max-width: 520px;
     height: auto;
   }
 
   #compare-chart {
-    max-width: 480px;
+    max-width: 600px;
   }
 
   .name-field {
@@ -697,7 +697,7 @@
     <form id="allocate-form" onsubmit="return false;" hidden>
       <div id="dimension-inputs"></div>
       <div id="remaining-counter"><strong>Remaining:</strong> <span id="remaining-value">20</span> / <span id="budget-display">20</span></div>
-      <svg id="allocate-chart" viewBox="-170 -170 340 340" xmlns="http://www.w3.org/2000/svg"></svg>
+      <svg id="allocate-chart" viewBox="-320 -190 640 400" xmlns="http://www.w3.org/2000/svg"></svg>
       <label class="name-field" for="participant-name">Your name (optional)
         <input type="text" id="participant-name" placeholder="">
       </label>
@@ -722,7 +722,7 @@
         <button type="button" id="clear-button">Clear</button>
       </div>
       <div id="compare-errors" class="errors"></div>
-      <svg id="compare-chart" viewBox="-220 -220 440 440" xmlns="http://www.w3.org/2000/svg"></svg>
+      <svg id="compare-chart" viewBox="-320 -190 640 400" xmlns="http://www.w3.org/2000/svg"></svg>
       <div id="compare-legend"></div>
       <table id="compare-stats">
         <thead><tr><th>Dimension</th><th>Avg</th><th>Min</th><th>Max</th><th>Stdev</th></tr></thead>
