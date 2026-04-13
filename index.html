@@ -874,20 +874,36 @@ function svgEl(tag, attrs) {
   return e;
 }
 
-function renderChart(svg, submissions) {
+function renderChart(svg, submissions, opts) {
   clearNode(svg);
   if (!currentConfig) return;
+
+  var options = opts || {};
+  var normalize = !!options.normalize;
 
   const RADIUS = 120;
   const GRID_LEVELS = 5;
   const N = currentConfig.dimensions.length;
+
+  var scaleMax = currentConfig.budget;
+  if (normalize && submissions.length > 0) {
+    var maxVal = 0;
+    submissions.forEach(function (sub) {
+      if (sub.isAverage) return;
+      currentConfig.dimensions.forEach(function (d) {
+        var v = sub.values[d.id.toUpperCase()] || 0;
+        if (v > maxVal) maxVal = v;
+      });
+    });
+    if (maxVal > 0) scaleMax = maxVal;
+  }
 
   const angles = currentConfig.dimensions.map(function (_, i) {
     return -Math.PI / 2 + (2 * Math.PI * i) / N;
   });
 
   function pointAt(axisIdx, value) {
-    const r = (value / currentConfig.budget) * RADIUS;
+    const r = (value / scaleMax) * RADIUS;
     return {
       x: r * Math.cos(angles[axisIdx]),
       y: r * Math.sin(angles[axisIdx])
@@ -1298,7 +1314,7 @@ function doRender() {
     isAverage: true
   }]);
 
-  renderChart(compareChart, withAverage);
+  renderChart(compareChart, withAverage, { normalize: true });
 
   clearNode(compareLegend);
   withAverage.forEach(function (sub) {
