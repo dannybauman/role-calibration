@@ -720,7 +720,7 @@
       <div>
         <button type="button" id="render-button">Render</button>
         <button type="button" id="clear-button">Clear</button>
-        <button type="button" id="copy-compare-url">Copy share link</button>
+        <button type="button" id="copy-compare-url" hidden>Copy share link</button>
       </div>
       <div id="compare-errors" class="errors"></div>
       <input type="text" id="compare-share-fallback" class="share-url" readonly hidden>
@@ -1287,6 +1287,8 @@ function doRender() {
   const compareLegend = document.getElementById("compare-legend");
   const compareErrors = document.getElementById("compare-errors");
   const statsBody = document.querySelector("#compare-stats tbody");
+  const shareBtn = document.getElementById("copy-compare-url");
+  shareBtn.hidden = true;
 
   const lines = compareInput.value.split("\n");
   const submissions = [];
@@ -1329,6 +1331,8 @@ function doRender() {
     clearNode(statsBody);
     return;
   }
+
+  shareBtn.hidden = false;
 
   const stats = computeStats(submissions);
   const avgValues = {};
@@ -1525,6 +1529,7 @@ function init() {
     clearNode(document.getElementById("compare-chart"));
     clearNode(document.getElementById("compare-legend"));
     clearNode(document.querySelector("#compare-stats tbody"));
+    document.getElementById("copy-compare-url").hidden = true;
     const fallback = document.getElementById("compare-share-fallback");
     if (fallback) fallback.hidden = true;
   });
