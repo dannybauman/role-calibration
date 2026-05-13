@@ -4,3 +4,4 @@ allocate-empty.png
 allocate-filled.png
 compare-rendered.png
 *.log
+.gstack/
