@@ -720,8 +720,10 @@
       <div>
         <button type="button" id="render-button">Render</button>
         <button type="button" id="clear-button">Clear</button>
+        <button type="button" id="copy-compare-url">Copy share link</button>
       </div>
       <div id="compare-errors" class="errors"></div>
+      <input type="text" id="compare-share-fallback" class="share-url" readonly hidden>
       <svg id="compare-chart" viewBox="-320 -190 640 400" xmlns="http://www.w3.org/2000/svg"></svg>
       <div id="compare-legend"></div>
       <table id="compare-stats">
@@ -767,30 +769,57 @@ function encodeConfigToHash(config) {
   return "c=" + encodeURIComponent(JSON.stringify(config));
 }
 
-function decodeConfigFromHash(hash) {
+function decodeHashParams(hash) {
+  const out = {};
   const raw = hash.replace(/^#/, "");
-  if (!raw) return null;
-  const params = raw.split("&");
-  for (const p of params) {
+  if (!raw) return out;
+  raw.split("&").forEach(function (p) {
     const eq = p.indexOf("=");
-    if (eq < 0) continue;
-    const key = p.slice(0, eq);
-    const val = p.slice(eq + 1);
-    if (key === "c") {
-      try {
-        return JSON.parse(decodeURIComponent(val));
-      } catch (err) {
-        console.warn("Failed to parse config from URL hash:", err);
-        return null;
-      }
-    }
+    if (eq < 0) return;
+    out[p.slice(0, eq)] = p.slice(eq + 1);
+  });
+  return out;
+}
+
+function decodeConfigFromHash(hash) {
+  const params = decodeHashParams(hash);
+  if (!params.c) return null;
+  try {
+    return JSON.parse(decodeURIComponent(params.c));
+  } catch (err) {
+    console.warn("Failed to parse config from URL hash:", err);
+    return null;
   }
-  return null;
+}
+
+function decodeSubmissionsFromHash(hash) {
+  const params = decodeHashParams(hash);
+  if (!params.s) return null;
+  try {
+    return decodeURIComponent(params.s);
+  } catch (err) {
+    console.warn("Failed to parse submissions from URL hash:", err);
+    return null;
+  }
+}
+
+function decodeModeFromHash(hash) {
+  const params = decodeHashParams(hash);
+  return params.m || null;
 }
 
 function buildShareUrl(config) {
   const base = location.origin + location.pathname;
   return base + "#" + encodeConfigToHash(config);
+}
+
+function buildCompareShareUrl(config, submissionsText) {
+  const base = location.origin + location.pathname;
+  let hash = encodeConfigToHash(config) + "&m=compare";
+  if (submissionsText && submissionsText.trim()) {
+    hash += "&s=" + encodeURIComponent(submissionsText);
+  }
+  return base + "#" + hash;
 }
 
 function parseCode(line) {
@@ -1360,13 +1389,10 @@ function doRender() {
 // ============================================================
 
 function init() {
-  // Try loading config from URL hash
+  // Wire up handlers below first so applyHashState can call doRender, then load hash state.
   const hashConfig = decodeConfigFromHash(location.hash);
-  if (hashConfig && hashConfig.role && hashConfig.dimensions) {
-    applyConfig(hashConfig);
-    populateConfigForm(hashConfig);
-    setMode("allocate");
-  } else {
+  const hasValidHashConfig = hashConfig && hashConfig.role && hashConfig.dimensions;
+  if (!hasValidHashConfig) {
     populateConfigForm({
       role: { title: "", framing: "" },
       budget: 20,
@@ -1499,17 +1525,64 @@ function init() {
     clearNode(document.getElementById("compare-chart"));
     clearNode(document.getElementById("compare-legend"));
     clearNode(document.querySelector("#compare-stats tbody"));
+    const fallback = document.getElementById("compare-share-fallback");
+    if (fallback) fallback.hidden = true;
   });
+
+  document.getElementById("copy-compare-url").addEventListener("click", async function () {
+    if (!currentConfig) return;
+    const submissions = document.getElementById("compare-input").value;
+    const url = buildCompareShareUrl(currentConfig, submissions);
+    const btn = document.getElementById("copy-compare-url");
+    const fallback = document.getElementById("compare-share-fallback");
+
+    let copied = false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch (err) {
+        copied = false;
+      }
+    }
+    if (copied) {
+      if (fallback) fallback.hidden = true;
+      const originalText = btn.textContent;
+      btn.textContent = "Copied ✓";
+      setTimeout(function () { btn.textContent = originalText; }, 2000);
+    } else if (fallback) {
+      fallback.value = url;
+      fallback.hidden = false;
+      fallback.focus();
+      fallback.select();
+    }
+  });
+
+  // Apply initial hash state (config + optional compare submissions) now that handlers are wired.
+  if (hasValidHashConfig) applyHashState();
 
   // React to hash changes (in case someone edits the URL or follows a shared link)
   window.addEventListener("hashchange", function () {
-    const hashConfig = decodeConfigFromHash(location.hash);
-    if (hashConfig && hashConfig.role && hashConfig.dimensions) {
-      applyConfig(hashConfig);
-      populateConfigForm(hashConfig);
-      setMode("allocate");
-    }
+    applyHashState();
   });
+}
+
+function applyHashState() {
+  const hashConfig = decodeConfigFromHash(location.hash);
+  if (!(hashConfig && hashConfig.role && hashConfig.dimensions)) return;
+  applyConfig(hashConfig);
+  populateConfigForm(hashConfig);
+  const mode = decodeModeFromHash(location.hash);
+  if (mode === "compare") {
+    setMode("compare");
+    const submissions = decodeSubmissionsFromHash(location.hash);
+    if (submissions !== null) {
+      document.getElementById("compare-input").value = submissions;
+      doRender();
+    }
+  } else {
+    setMode("allocate");
+  }
 }
 
 if (document.readyState === "loading") {

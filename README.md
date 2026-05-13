@@ -16,6 +16,8 @@ You run it in two modes. Everyone opens the same page, and the facilitator flips
 
 **Compare mode.** The facilitator switches modes, pastes every line from the chat into a textarea, hits Render. All submissions show up as overlaid polygons with a group-average outline and a stats table underneath. You spot the tension instantly: where does everyone agree, where does one person weight something differently, what's the implicit disagreement nobody's been naming.
 
+**Sharing the result.** Once the chart is rendered, "Copy share link" grabs a URL that opens straight to the same populated Compare view. The config and the pasted submissions are both encoded in the URL hash, so anyone who opens the link sees the chart and stats without any further clicks. Useful for sharing the result afterward with people who weren't in the meeting.
+
 The exercise takes about 5 minutes. The conversation it unlocks takes the rest of the meeting.
 
 ## Code format
